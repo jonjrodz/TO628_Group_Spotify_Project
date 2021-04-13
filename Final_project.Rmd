@@ -20,6 +20,8 @@ summary(sdata)
 
 sdata$explicit <- as.factor(sdata$explicit)
 
+hist(sdata$popularity)
+
 ```
 
 ## Linear Regression
@@ -71,21 +73,25 @@ cor(popular_predict, sdata_test$popularity)
 
 #### Need to data clean and make outcome a binary variable
 ```{r}
-sdata_test$popularity2 = as.factor(ifelse(sdata_test$popularity>50,1,0))
-sdata_train$popularity2 = as.factor(ifelse(sdata_train$popularity>50,1,0))
+sdata_test$popularity2 = as.factor(ifelse(sdata_test$popularity>42,1,0))
+sdata_train$popularity2 = as.factor(ifelse(sdata_train$popularity>42,1,0))
+
+plot(sdata_train$popularity2)
 
 log_model1= glm(popularity2 ~  acousticness + danceability + duration_ms + energy + explicit + instrumentalness + key + liveness + loudness + speechiness + tempo + valence ,data = sdata_train, family = "binomial")
 
 summary(log_model1)
 
 ```
+#### Predicting and classification logistic regression
 
 ```{r}
 
 log1_predict = predict(log_model1, sdata_test)
+log1_predict = ifelse(log1_predict > 0.1, 1, 0)
+log1_predict = as.factor(log1_predict)
 
 library(caret)
-
 
 confusionMatrix(log1_predict, sdata_test$popularity2)
 
