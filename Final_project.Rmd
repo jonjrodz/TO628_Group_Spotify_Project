@@ -19,6 +19,8 @@ str(sdata)
 summary(sdata)
 
 sdata$explicit <- as.factor(sdata$explicit)
+sdata$mode <- as.factor(sdata$mode)
+sdata$decade <- as.factor(trunc(sdata$year / 10) *10)
 
 hist(sdata$popularity)
 
@@ -27,14 +29,15 @@ hist(sdata$popularity)
 ## Linear Regression
 ```{r}
 
-model1 <- lm( popularity ~ acousticness + danceability + duration_ms + energy + explicit + instrumentalness + key + liveness + loudness + speechiness + tempo + tempo + valence ,data = sdata )
+model1 <- lm( popularity ~ acousticness + danceability + duration_ms + energy + explicit + instrumentalness + key + liveness + loudness + speechiness + tempo + tempo + valence +mode +
+                decade,data = sdata )
 
 summary(model1)
 
 ```
 ## Linear Regression 2
 ```{r}
-model2 <- lm( popularity ~ acousticness + danceability + duration_ms + energy + explicit + instrumentalness + key + liveness + speechiness + valence ,data = sdata )
+model2 <- lm( popularity ~ acousticness + danceability + energy + explicit + instrumentalness + key + liveness + speechiness + valence +mode,data = sdata )
 
 summary(model2)
 
@@ -78,7 +81,7 @@ sdata_train$popularity2 = as.factor(ifelse(sdata_train$popularity>42,1,0))
 
 plot(sdata_train$popularity2)
 
-log_model1= glm(popularity2 ~  acousticness + danceability + duration_ms + energy + explicit + instrumentalness + key + liveness + loudness + speechiness + tempo + valence ,data = sdata_train, family = "binomial")
+log_model1= glm(popularity2 ~  acousticness + danceability + duration_ms + energy + explicit + instrumentalness + key + liveness + loudness + speechiness + tempo + valence +decade ,data = sdata_train, family = "binomial")
 
 summary(log_model1)
 
@@ -96,4 +99,14 @@ library(caret)
 confusionMatrix(log1_predict, sdata_test$popularity2)
 
 ```
+
+## Additional analysis 
+
+Look at
+*Labels and popularity
+*Artists and popularity 
+*Consider time period - dummy variable for a decade, potentially restrict time period 
+  E.g., modern time period (post 1990s / 2000s)
+
+
 
