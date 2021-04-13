@@ -1,0 +1,78 @@
+---
+title: "Final Project"
+author: "Kevin Ojo, Jon Rodriguez, Pablo Martinez Sepulveda, TJ Banks, Alex Johnson"
+date: "4/12/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Final Project Initial Linear Regression
+```{r}
+##Importing Data
+
+sdata <- read.csv("data.csv")
+
+str(sdata)
+summary(sdata)
+
+sdata$explicit <- as.factor(sdata$explicit)
+
+```
+
+## Linear Regression
+```{r}
+
+model1 <- lm( popularity ~ acousticness + danceability + duration_ms + energy + explicit + instrumentalness + key + liveness + loudness + speechiness + tempo + tempo + valence ,data = sdata )
+
+summary(model1)
+
+```
+## Linear Regression 2
+```{r}
+model2 <- lm( popularity ~ acousticness + danceability + duration_ms + energy + explicit + instrumentalness + key + liveness + speechiness + valence ,data = sdata )
+
+summary(model2)
+
+```
+
+## Assessing Regression
+
+```{r}
+
+set.seed(12345)
+testset = sample(1:nrow(sdata), 0.2*nrow(sdata))
+sdata_test = sdata[testset, ]
+sdata_train = sdata[-testset, ]
+
+```
+
+## Linear Regression on Training Only
+
+```{r}
+model3 <- lm( popularity ~ acousticness + danceability + duration_ms + energy + explicit + instrumentalness + key + liveness + speechiness + valence ,data = sdata_train )
+
+summary(model3)
+
+
+```
+
+```{r}
+
+popular_predict = predict(model3, sdata_test)
+
+cor(popular_predict, sdata_test$popularity)
+
+
+```
+## Logistic Regression
+
+#### Need to data clean and make outcome a binary variable
+```{r}
+#sdata_test$popularity = as.factor(ifelse()
+
+
+```
+
