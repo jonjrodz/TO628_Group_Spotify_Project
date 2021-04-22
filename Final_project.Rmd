@@ -107,6 +107,10 @@ Look at
 *Artists and popularity 
 *Consider time period - dummy variable for a decade, potentially restrict time period 
   E.g., modern time period (post 1990s / 2000s)
+  
+Additional models to look at?
+*ANN to compliment linear regression 
+*KNN with logistic regression 
 
 
 
