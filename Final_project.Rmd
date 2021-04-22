@@ -1,15 +1,32 @@
 ---
 title: "Final Project"
 author: "Kevin Ojo, Jon Rodriguez, Pablo Martinez Sepulveda, TJ Banks, Alex Johnson"
-date: "4/12/2021"
-output: html_document
+date: "4/22/2021"
+output:
+  html_document:
+    toc: true
+    theme: readable
+    highlight: tango
+    code_folding: show
+
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# Final Project Initial Linear Regression
+## Introduction and Discussion of Business Problem 
+Our is asking the question: which factors cause a song or artist to be more popular on Spotify?  What are the most important and least important factors in predicting popularity?
+
+The answer to this question may have profound implications for music producers, executves, and artists. With the explosion of digital music distribution channels, a huge number of musical artists have been able to flood the internet with their music.  This has made it more difficult for artists to capture sustainable listener share and especially difficult for producers and record label executives to identify the "next big thing" before it happens.  By predicting how listeners react to certain characteristics of a song or album, artists, producers, and label executives can prioritize their time and investment into music that would more likely appeal to listeners on Spotify.
+
+Dataset: Spotify Dataset of Songs from 1921-2020, 160k+ Tracks (link (Links to an external site.))
+
+
+# Modeling of Popularity as a Continuous Outcome Variable (Jon / Pablo)
+Popularity is assessed on a 1-100 scale for each song.  We began our analysis predicting popularity on the same continuous scale.
+
+## Linear Regression
 ```{r}
 ##Importing Data
 
@@ -35,7 +52,7 @@ model1 <- lm( popularity ~ acousticness + danceability + duration_ms + energy + 
 summary(model1)
 
 ```
-## Linear Regression 2
+## Linear Regression: Optimizing Performance
 ```{r}
 model2 <- lm( popularity ~ acousticness + danceability + energy + explicit + instrumentalness + key + liveness + speechiness + valence +mode,data = sdata )
 
@@ -43,7 +60,7 @@ summary(model2)
 
 ```
 
-## Assessing Regression
+### Assessing Regression
 
 ```{r}
 
@@ -54,7 +71,7 @@ sdata_train = sdata[-testset, ]
 
 ```
 
-## Linear Regression on Training Only
+## Linear Regression Using Train / Test Split
 
 ```{r}
 model3 <- lm( popularity ~ acousticness + danceability + duration_ms + energy + explicit + instrumentalness + key + liveness + speechiness + valence ,data = sdata_train )
@@ -78,30 +95,51 @@ cor(popular_predict, sdata_test$popularity)
 ```{r}
 library(neuralnet)
 
+
+
 normalize <- function(x) { 
   return((x - min(x)) / (max(x) - min(x)))
 }
 
+spotify_draft = sdata
+str(spotify_draft)
+spotify_draft$artists = NULL
+spotify_draft$id = NULL
+spotify_draft$name = NULL
+spotify_draft$release_date = NULL
+spotify_draft$year = NULL
+
+str(spotify_draft)
+
+spotify_mmatrix <- as.data.frame(model.matrix(~. - 1,spotify_draft))
   
 
-spotify_norm <- as.data.frame(lapply(sdata, normalize))
+spotify_norm <- as.data.frame(lapply(spotify_mmatrix, normalize))
 
 set.seed(12345)
 testset = sample(1:nrow(spotify_norm), 0.2*nrow(spotify_norm))
 spotify_norm_test = spotify_norm[testset, ]
 spotify_norm_train = spotify_norm[-testset, ]
 
+str(spotify_norm_train)
 
 ann_model <- neuralnet(formula = popularity ~ ., data = spotify_norm_train)
 plot(ann_model)
-#change for new code
+
+# obtain model results
+model_results <- compute(ann_model, spotify_norm_test)
+# obtain predicted strength values
+predicted_pop <- model_results$net.result
+# examine the correlation between predicted and actual values
+cor(predicted_pop, spotify_norm_test$popularity)
+
 
 ```
+# Modeling of Popularity as a Categorical Outcome Variable
 
+## Logistic Regression (Kevin)
 
-## Logistic Regression
-
-#### Need to data clean and make outcome a binary variable
+#### Data Cleaning and Manipulation
 ```{r}
 sdata_test$popularity2 = as.factor(ifelse(sdata_test$popularity>42,1,0))
 sdata_train$popularity2 = as.factor(ifelse(sdata_train$popularity>42,1,0))
@@ -113,6 +151,7 @@ log_model1= glm(popularity2 ~  acousticness + danceability + duration_ms + energ
 summary(log_model1)
 
 ```
+
 #### Predicting and classification logistic regression
 
 ```{r}
@@ -127,17 +166,57 @@ confusionMatrix(log1_predict, sdata_test$popularity2)
 
 ```
 
-## Additional analysis 
+## KNN (TJ)
 
-Look at
-*Labels and popularity
-*Artists and popularity 
-*Consider time period - dummy variable for a decade, potentially restrict time period 
-  E.g., modern time period (post 1990s / 2000s)
-  
-Additional models to look at?
-*ANN to compliment linear regression 
-*KNN with logistic regression 
+```{r}
+
+library(class)
+
+spotify_norm_train$popularity = as.factor(ifelse(spotify_norm_train$popularity>.42,1,0))
+spotify_norm_test$popularity = as.factor(ifelse(spotify_norm_test$popularity>.42,1,0))
+
+spotify_norm_train_x = spotify_norm_train[,-12]
+spotify_norm_train_y = spotify_norm_train[,12]
+
+spotify_norm_test_x = spotify_norm_test[,-12]
+spotify_norm_test_y = spotify_norm_test[,12]
+
+
+#K determined based on square root of the number of observations in the train set 
+KNN_model <- knn(train = spotify_norm_train_x, test = spotify_norm_test_x,
+                      cl = spotify_norm_train_y, k= round(sqrt(nrow(spotify_norm_train_x))))
+
+library(gmodels)
+#Confusion matrix
+CrossTable(x = spotify_norm_test_y, y = KNN_model, 
+           prop.chisq=FALSE)
+
+library(caret)
+
+confusionMatrix(spotify_norm_test_y, KNN_model)
+
+```
+
+## Conclusion and Discussion of Results 
+
+<Insert overall conclusion>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
