@@ -72,6 +72,33 @@ cor(popular_predict, sdata_test$popularity)
 
 
 ```
+
+## ANN Model
+
+```{r}
+library(neuralnet)
+
+normalize <- function(x) { 
+  return((x - min(x)) / (max(x) - min(x)))
+}
+
+  
+
+spotify_norm <- as.data.frame(lapply(sdata, normalize))
+
+set.seed(12345)
+testset = sample(1:nrow(spotify_norm), 0.2*nrow(spotify_norm))
+spotify_norm_test = spotify_norm[testset, ]
+spotify_norm_train = spotify_norm[-testset, ]
+
+
+ann_model <- neuralnet(formula = popularity ~ ., data = spotify_norm_train)
+plot(ann_model)
+#change for new code
+
+```
+
+
 ## Logistic Regression
 
 #### Need to data clean and make outcome a binary variable
