@@ -16,20 +16,19 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## Introduction and Discussion of Business Problem 
-Our is asking the question: which factors cause a song or artist to be more popular on Spotify?  What are the most important and least important factors in predicting popularity?
+>Our question of interest is: which factors cause a song to be more popular on Spotify? Additionally, what are the most and least important factors in predicting popularity?
 
-The answer to this question may have profound implications for music producers, executves, and artists. With the explosion of digital music distribution channels, a huge number of musical artists have been able to flood the internet with their music.  This has made it more difficult for artists to capture sustainable listener share and especially difficult for producers and record label executives to identify the "next big thing" before it happens.  By predicting how listeners react to certain characteristics of a song or album, artists, producers, and label executives can prioritize their time and investment into music that would more likely appeal to listeners on Spotify.
+>The answer to this question may have profound implications for music producers, executves, and artists. With the explosion of digital music distribution channels, a large number of musical artists have been able to flood the internet with music.  This has made it more difficult for artists to capture sustainable listener share and especially difficult for producers and record label executives to identify the "next big hit."  By predicting how listeners react to certain characteristics of a song; artists, producers, and label executives can prioritize their time and investment into music that would more likely appeal to listeners on Spotify.
 
-Dataset: Spotify Dataset of Songs from 1921-2020, 160k+ Tracks (link (Links to an external site.))
+>Our data uses a Spotify Dataset of Songs from 1921-2020 with over 160k tracks (link (Links to an external site.))
 
 
-# Modeling of Popularity as a Continuous Outcome Variable (Jon / Pablo)
-Popularity is assessed on a 1-100 scale for each song.  We began our analysis predicting popularity on the same continuous scale.
+# Modeling of Popularity as a Continuous Outcome Variable
 
-## Linear Regression
+>In the data, "popularity" is a continuos variable on a scale of 1 to 100 measured for each song. The first part of our analysis will investigate popularity as a continuous variable, while the second part will attempt to predict popularity as a dichotomous variable.
+
+## Setting up for Linear Regression
 ```{r}
-##Importing Data
-
 sdata <- read.csv("data.csv")
 
 str(sdata)
@@ -40,63 +39,54 @@ sdata$mode <- as.factor(sdata$mode)
 sdata$decade <- as.factor(trunc(sdata$year / 10) *10)
 
 hist(sdata$popularity)
-
 ```
+>After importing the data and changing categorical variables to factors - including changing the original year variable into a categorical variable for decade - we look into the broad shape of our data. The histogram shows that popularity for songs is highly skewed with many songs not popular and few songs reaching the upper end of the distribution.
 
 ## Linear Regression
 ```{r}
-
-model1 <- lm( popularity ~ acousticness + danceability + duration_ms + energy + explicit + instrumentalness + key + liveness + loudness + speechiness + tempo + tempo + valence +mode +
-                decade,data = sdata )
+model1 <- lm(popularity ~ acousticness + danceability + duration_ms + energy 
+             + explicit + instrumentalness + key + liveness + loudness 
+             + speechiness + tempo + tempo + valence +mode + decade, 
+             data = sdata )
 
 summary(model1)
-
 ```
-## Linear Regression: Optimizing Performance
-```{r}
-model2 <- lm( popularity ~ acousticness + danceability + energy + explicit + instrumentalness + key + liveness + speechiness + valence +mode,data = sdata )
-
-summary(model2)
-
-```
+>We optimized our linear regression by iterating across models removing variables that were not statistically significant and including the newly created 'decade' factor. Even with the number of variables in the linear regression, our model predicts ~50% of the variation in popularity (Adjusted R-squared: 0.5071). This model has the added benefit of being very explanable. For example, we can see that 'instrumentalness' is statistically significant at the .001 level and has the largest maganitude of any factor (negative relationship with popularity).
 
 ### Assessing Regression
 
 ```{r}
-
 set.seed(12345)
 testset = sample(1:nrow(sdata), 0.2*nrow(sdata))
 sdata_test = sdata[testset, ]
 sdata_train = sdata[-testset, ]
-
 ```
 
 ## Linear Regression Using Train / Test Split
 
 ```{r}
-model3 <- lm( popularity ~ acousticness + danceability + duration_ms + energy + explicit + instrumentalness + key + liveness + speechiness + valence ,data = sdata_train )
+model1_train <- lm(popularity ~ acousticness + danceability + duration_ms + energy 
+             + explicit + instrumentalness + key + liveness + loudness 
+             + speechiness + tempo + tempo + valence +mode + decade, 
+             data = sdata_train )
 
-summary(model3)
-
-
+summary(model1_train)
 ```
 
 ```{r}
-
-popular_predict = predict(model3, sdata_test)
+popular_predict = predict(model1_train, sdata_test)
 
 cor(popular_predict, sdata_test$popularity)
-
-
 ```
+
+>As shown above, when assessing the linear regression model on training and test data - the model performs well with .72 correlation between predicted popularity and actual popularity in the test data
 
 ## ANN Model
 
+>To prep the data for ANN, we first removed the variables that are unneccesary such as the track ID and song name. To avoid our model from being skewed by the scale of variables we normalized the data after converting all variables into numeric data using model matrix.
+
 ```{r}
 library(neuralnet)
-
-
-
 normalize <- function(x) { 
   return((x - min(x)) / (max(x) - min(x)))
 }
@@ -123,18 +113,19 @@ spotify_norm_train = spotify_norm[-testset, ]
 
 str(spotify_norm_train)
 
-ann_model <- neuralnet(formula = popularity ~ ., data = spotify_norm_train)
+ann_model <- neuralnet(formula = popularity ~ ., data = spotify_norm_train[1:17000, ])
 plot(ann_model)
 
 # obtain model results
-model_results <- compute(ann_model, spotify_norm_test)
+model_results <- compute(ann_model, spotify_norm_test[1:17000, ])
 # obtain predicted strength values
 predicted_pop <- model_results$net.result
 # examine the correlation between predicted and actual values
-cor(predicted_pop, spotify_norm_test$popularity)
-
-
+cor(predicted_pop, spotify_norm_test$popularity[1:17000])
 ```
+
+>Running the ANN on a subset of the randomized test and train data, we can see that our ANN prediction results have a correlation coefficient of .69 when compared to the test data. This correlation is slighly less than our results from the linear regression. 
+
 # Modeling of Popularity as a Categorical Outcome Variable
 
 ## Logistic Regression (Kevin)
@@ -166,7 +157,7 @@ confusionMatrix(log1_predict, sdata_test$popularity2)
 
 ```
 
-## KNN (TJ)
+## KNN
 
 ```{r}
 
@@ -197,11 +188,21 @@ confusionMatrix(spotify_norm_test_y, KNN_model)
 
 ```
 
+>For our KNN model, we started by separating our independent x variables from our dependent y outcomes (also called labels). We also converted our outcome of interest (y variable) popularity into a dictomous factor using a cut off of .42 to determine a "1" for a popular song. We used .42 in line with our logistic model because upon investigating the data a popularity score of 42 represented the third quartile of data. We created test and train data sets and used a k value of 374 neighbors based on the squareroot of the number of rows in the train data set. Our KNN model has a Kappa Statistic of .4781.
+
 ## Conclusion and Discussion of Results 
 
 <Insert overall conclusion>
 
+# TO DELETE????
 
+## Linear Regression: Optimizing Performance
+
+```{r}
+model2 <- lm( popularity ~ acousticness + danceability + energy + explicit + instrumentalness + key + liveness + speechiness + valence +mode,data = sdata )
+
+summary(model2)
+```
 
 
 
