@@ -83,7 +83,7 @@ cor(popular_predict, sdata_test$popularity)
 
 ## ANN Model
 
->To prep the data for ANN, we first removed the variables that are unneccesary such as the track ID and song name. To avoid our model from being skewed by the scale of variables we normalized the data after converting all variables into numeric data using model matrix.
+>To prep the data for ANN, we first removed the variables that are unneccesary such as the track ID and song name. To avoid our model from being skewed by the scale of variables we normalized the data after converting all variables into numeric data using model matrix.  Given the high number of observations, we also chose to run the ANN on a randomized subset of the original dataset to reduce runtime. 
 
 ```{r}
 library(neuralnet)
@@ -128,7 +128,8 @@ cor(predicted_pop, spotify_norm_test$popularity[1:17000])
 
 # Modeling of Popularity as a Categorical Outcome Variable
 
-## Logistic Regression (Kevin)
+## Logistic Regression 
+>In the original dataset, popularity is a continuous variable from 0-100.  However, we also wanted to assess popularity in a binary, categorical sense: is the song popular, or is it not?  To do so, we created a new factor outcome variable, popularity2, which is a 1 if popularity is greater than 42 and is 0 if popularity is less than 42. 42 was selected as the cutoff since it is the third quartile of popularity. 
 
 #### Data Cleaning and Manipulation
 ```{r}
@@ -157,7 +158,12 @@ confusionMatrix(log1_predict, sdata_test$popularity2)
 
 ```
 
+>The logistic regrssion for prediciting "popular" or "not popular" results in a Kappa statistic of 0.4449 and overindexes on false positives, with fewer fals negatives. This is better for our business case of predicting hit songs, given that investment in a single song is minimal but the financial result of a hit song can be very large. 
+
 ## KNN
+>For our KNN model, we started by separating our independent x variables from our dependent y outcomes (also called labels). We also converted our outcome of interest (y variable) popularity into a dichotomous factor using a cut off of .42 to determine a "1" for a popular song. We used .42 in line with our logistic model because upon investigating the data a popularity score of 42 represented the third quartile of data. We created test and train data sets and used a k value of 374 neighbors based on the squareroot of the number of rows in the train data set. 
+
+>Like our ANN analysis, we ran KNN on a randomized subset of the original dataset due to the dataset's size and associated runtime.  
 
 ```{r}
 
@@ -174,38 +180,29 @@ spotify_norm_test_y = spotify_norm_test[,12]
 
 
 #K determined based on square root of the number of observations in the train set 
-KNN_model <- knn(train = spotify_norm_train_x, test = spotify_norm_test_x,
-                      cl = spotify_norm_train_y, k= round(sqrt(nrow(spotify_norm_train_x))))
+KNN_model <- knn(train = spotify_norm_train_x[1:17000,], test = spotify_norm_test_x[1:17000,],
+                      cl = spotify_norm_train_y[1:17000], k= round(sqrt(nrow(spotify_norm_train_x[1:17000,]))))
 
 library(gmodels)
 #Confusion matrix
-CrossTable(x = spotify_norm_test_y, y = KNN_model, 
+CrossTable(x = spotify_norm_test_y[1:17000], y = KNN_model, 
            prop.chisq=FALSE)
 
 library(caret)
 
-confusionMatrix(spotify_norm_test_y, KNN_model)
+confusionMatrix(spotify_norm_test_y[1:17000], KNN_model)
 
 ```
 
->For our KNN model, we started by separating our independent x variables from our dependent y outcomes (also called labels). We also converted our outcome of interest (y variable) popularity into a dictomous factor using a cut off of .42 to determine a "1" for a popular song. We used .42 in line with our logistic model because upon investigating the data a popularity score of 42 represented the third quartile of data. We created test and train data sets and used a k value of 374 neighbors based on the squareroot of the number of rows in the train data set. Our KNN model has a Kappa Statistic of .4781.
+>Our KNN model has a Kappa Statistic of .2615, indicating worse overall performance than the logistic regression.  However, the KNN model results in far fewer false negatives, indicating we may be able to predict more hit songs.  If the investment in songs is minimal and the payout in hits is significant, this may be a better method for prediction. 
 
 ## Conclusion and Discussion of Results 
 
-<Insert overall conclusion>
+>In both cases of analyzing song popularity - either a continuous or categorical output variable - the simpler model performs better when analyzing results.  
 
-# TO DELETE????
+>The linear regression model produces a slightly higher correlation between train / test outcomes (0.72) versus the ANN model (0.69). This result, combined with the the fact that the linear regression is not a black box, leads us to conclude the linear regression may be a better model for our purposes.  Based on the results of the linear regression, it can be determined that there are a few important factors to predict song popularity: dancability and whether the song is from the 1950s are top predictors for popularity, while energy, instrumentallness, and liveness are top predictors for being less popular.  These results somewhat surprised us, particularly the association of popularity with the 1950s.  Our hypothesis of the reason for this finding is that only songs that were already excessively popular performed by popular artists from the 1950s are on Spotify, while there is a plethora of modern songs on Spotify, many of which will not be popular and may be of middling quality.  The linear regression was both highly significant and explained a large proportion of the variance of outcome, with an R-squared of 0.5.  However, much of the variation can be explained by decade, so additional analysis might need to be done to strip away impact of decade when determining whether to invest in a modern-day song.
 
-## Linear Regression: Optimizing Performance
-
-```{r}
-model2 <- lm( popularity ~ acousticness + danceability + energy + explicit + instrumentalness + key + liveness + speechiness + valence +mode,data = sdata )
-
-summary(model2)
-```
-
-
-
+>When analyzing popularity as a binary categorical variable, we introduced two levels of subjectivity that in future use would need to be constantly justified: the cutoff of what constitues "popular" (in our case, we decided on a level 42 popularity which is the third quartile) and the prediction odds threshold that would consititute popularity when predicting results for logistic regression (we chose 0.1 given the skewness of the data). While the logistic regression with these parameters performed better than the KNN, the KNN was subject to only one of these subjective parameters, which may lend itself to a more objective estimation. In that vein, KNN also had much fewer false negatives, which may impact potential financial return of hit songs are missed. 
 
 
 
